@@ -20,7 +20,7 @@ import struct
 import mmap
 import os
 
-import hll
+from . import hll
 
 class HyperLogLogDB(object):
     fobj = None
@@ -107,7 +107,7 @@ class HyperLogLogDB(object):
             self.f_header.data = self.mfile
         if self.f_idx:
             self.f_idx.data = self.mfile
-        for obj in self.idx.itervalues():
+        for obj in self.idx.values():
             obj['mmap'].data = self.mfile
 
     def write_bytes(self, start, length):
@@ -125,7 +125,7 @@ class HyperLogLogDB(object):
         self.mfile.flush()
 
     def flush_idx(self):
-        idx_str = json.dumps(dict([(k, v['offset']) for k,v in self.idx.items()]))
+        idx_str = json.dumps(dict([(k, v['offset']) for k,v in list(self.idx.items())]))
         if len(idx_str) > self.idx_length:
             #move the index to a new location
             self.idx_length = len(idx_str)
@@ -141,8 +141,8 @@ class HyperLogLogDB(object):
     def read_idx(self):
         new_idx = json.loads(self.f_idx.read(self.idx_length))
 
-        self.idx = dict([(k,{'offset':v}) for k,v in new_idx.iteritems()])
-        for k, obj in self.idx.iteritems():
+        self.idx = dict([(k,{'offset':v}) for k,v in new_idx.items()])
+        for k, obj in self.idx.items():
             obj['mmap'] = hll.MmapSlice(self.mfile, self.m, obj['offset'])
             obj['hll'] = hll.HyperLogLog(self.error_rate, obj['mmap'], bitcount_arr=self.bitcount_arr)
 
@@ -182,10 +182,10 @@ class HyperLogLogDB(object):
         # get a list of all keys in other
         all_other_keys = set()
         for other in others:
-            all_other_keys.update(other.idx.keys())
+            all_other_keys.update(list(other.idx.keys()))
 
         for k in all_other_keys:
-            self.update(k, filter(lambda o: o, map(lambda other: other.get_hll(k), others)))
+            self.update(k, [o for o in [other.get_hll(k) for other in others] if o])
 
     def update(self, key, others):
         if not isinstance(others, list):

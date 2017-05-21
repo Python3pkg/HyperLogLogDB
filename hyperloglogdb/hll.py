@@ -73,7 +73,7 @@ class HyperLogLog(object):
     def _get_bitcount_arr(error_rate, b=None):
         if not b:
             b = int(math.ceil(math.log((1.04 / error_rate) ** 2, 2)))
-        return [ 1L << i for i in range(160 - b + 1) ]
+        return [ 1 << i for i in range(160 - b + 1) ]
 
     @staticmethod
     def _get_alpha(b):
@@ -108,7 +108,7 @@ class HyperLogLog(object):
         # w = <x_{b+1}x_{b+2}..>
         # M[j] = max(M[j], rho(w))
 
-        x = long(sha1(value).hexdigest(), 16)
+        x = int(sha1(value).hexdigest(), 16)
         j = x & ((1 << self.b) - 1)
         w = x >> self.b
 
@@ -127,7 +127,7 @@ class HyperLogLog(object):
             if self.m != other.m:
                 raise ValueError('Counters precisions should be equal')
 
-        arr = numpy.array(map(lambda other: bytearray(other.M.read(other.m)), others) + [bytearray(self.M.read(self.m))])
+        arr = numpy.array([bytearray(other.M.read(other.m)) for other in others] + [bytearray(self.M.read(self.m))])
 
         M1 = bytearray(numpy.amax(arr,axis=0))
 
@@ -160,12 +160,12 @@ class HyperLogLog(object):
             #print 'Small corr'
             V = M1.count('\x00') #count number or registers equal to 0
             return self.m * math.log(self.m / float(V)) if V > 0 else E
-        elif E <= float(1L << 160) / 30.0:  #intermidiate range correction -> No correction
+        elif E <= float(1 << 160) / 30.0:  #intermidiate range correction -> No correction
             #print 'No corr'
             return E
         else:
             # print 'Large corr'
-            return -(1L << 160) * math.log(1.0 - E / (1L << 160))
+            return -(1 << 160) * math.log(1.0 - E / (1 << 160))
 
 class MmapSlice(object):
     data = None
